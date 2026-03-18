@@ -43,9 +43,9 @@ app.get("/merge", async (req, res) => {
 
     // 3. Create concat list
     const listFile = path.join(tempDir, "list.txt");
-    const listContent = files
-      .map((_, i) => `file 'seg${i}.webm'`)
-      .join("\n");
+   const listContent = files
+  .map((_, i) => `file seg${i}.webm`)
+  .join("\n");
 
     fs.writeFileSync(listFile, listContent);
 
