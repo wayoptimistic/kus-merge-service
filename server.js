@@ -9,24 +9,23 @@ app.get("/health", (req, res) => {
 });
 
 // test route
+const axios = require("axios");
+
 app.get("/merge", async (req, res) => {
-  console.log("MERGE FETCH TEST");
+  console.log("MERGE AXIOS TEST");
 
   try {
-    const fetch = require("node-fetch");
+    const response = await axios.get(
+      "https://kus-upload.jbehrens57.workers.dev/list",
+      { timeout: 5000 }
+    );
 
-    const response = await fetch("https://kus-upload.jbehrens57.workers.dev/list");
+    console.log("AXIOS STATUS:", response.status);
 
-    console.log("FETCH STATUS:", response.status);
-
-    const text = await response.text();
-
-    console.log("FETCH RESPONSE:", text.substring(0, 200));
-
-    res.send("FETCH WORKED");
+    res.json(response.data);
 
   } catch (err) {
-    console.error("FETCH ERROR:", err);
-    res.status(500).send("FETCH FAILED");
+    console.error("AXIOS ERROR:", err.message);
+    res.status(500).send("AXIOS FAILED");
   }
 });
