@@ -53,11 +53,17 @@ app.get("/merge", async (req, res) => {
 
     // 4. Merge with FFmpeg
     await new Promise((resolve, reject) => {
-      exec(
-        `ffmpeg -f concat -safe 0 -i ${listFile} -c copy ${outputFile}`,
-        (err) => (err ? reject(err) : resolve())
-      );
-    });
+  exec(
+    `cd ${tempDir} && ffmpeg -f concat -safe 0 -i list.txt -c copy output.webm`,
+    (err, stdout, stderr) => {
+      console.log("FFMPEG STDOUT:", stdout);
+      console.log("FFMPEG STDERR:", stderr);
+
+      if (err) reject(err);
+      else resolve();
+    }
+  );
+});
 
     // 5. Return merged video
     const video = fs.readFileSync(outputFile);
