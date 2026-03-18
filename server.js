@@ -1,33 +1,26 @@
 const express = require("express");
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
 
 const app = express();
 
+// health check
 app.get("/health", (req, res) => {
+  console.log("HEALTH HIT");
   res.send("OK");
 });
 
-// 🔥 MERGE ENDPOINT
+// test route
 app.get("/merge", (req, res) => {
   console.log("MERGE HIT");
   res.send("MERGE WORKING");
 });
 
-    // 5. Return merged video
-    const video = fs.readFileSync(outputFile);
-    res.setHeader("Content-Type", "video/webm");
-    res.send(video);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Merge failed");
-  }
+// fallback (important)
+app.get("*", (req, res) => {
+  res.send("Route working");
 });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running on port " + PORT);
 });
