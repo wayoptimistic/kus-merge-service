@@ -10,34 +10,23 @@ app.get("/health", (req, res) => {
 
 // test route
 app.get("/merge", async (req, res) => {
-  console.log("MERGE STEP 1 HIT");
-
-  const sessionId = req.query.sessionId;
-
-  if (!sessionId) {
-    return res.status(400).send("Missing sessionId");
-  }
+  console.log("MERGE FETCH TEST");
 
   try {
-    const workerBase = "https://kus-upload.jbehrens57.workers.dev";
+    const fetch = require("node-fetch");
 
-    const listRes = await fetch(`${workerBase}/list`);
-    const allFiles = await listRes.json();
+    const response = await fetch("https://kus-upload.jbehrens57.workers.dev/list");
 
-    const files = allFiles.filter(f =>
-      f.name.includes(sessionId)
-    );
+    console.log("FETCH STATUS:", response.status);
 
-    console.log("FILES FOUND:", files.length);
+    const text = await response.text();
 
-    if (!files.length) {
-      return res.status(404).send("No segments found");
-    }
+    console.log("FETCH RESPONSE:", text.substring(0, 200));
 
-    res.json(files);
+    res.send("FETCH WORKED");
 
   } catch (err) {
-    console.error("ERROR:", err);
-    res.status(500).send("Step 1 failed");
+    console.error("FETCH ERROR:", err);
+    res.status(500).send("FETCH FAILED");
   }
 });
