@@ -10,61 +10,9 @@ app.get("/health", (req, res) => {
 });
 
 // 🔥 MERGE ENDPOINT
-app.get("/merge", async (req, res) => {
-  console.log("MERGE ENDPOINT HIT");
-
-  const sessionId = req.query.sessionId;
-
-  if (!sessionId) {
-    return res.status(400).send("Missing sessionId");
-  }
-
-  const tempDir = `/tmp/${sessionId}`;
-  fs.mkdirSync(tempDir, { recursive: true });
-
-  try {
-    const workerBase = "https://kus-upload.jbehrens57.workers.dev";
-
-    // 1. Get list of segments
-    const listRes = await fetch(`${workerBase}/list?sessionId=${sessionId}`);
-    const files = await listRes.json();
-
-    if (!files.length) {
-      return res.status(404).send("No segments found");
-    }
-
-    // 2. Download each segment
-    for (let i = 0; i < files.length; i++) {
-      const fileUrl = `${workerBase}/video/${files[i].name}`;
-      const filePath = path.join(tempDir, `seg${i}.webm`);
-
-      const fileRes = await fetch(fileUrl);
-      const buffer = Buffer.from(await fileRes.arrayBuffer());
-      fs.writeFileSync(filePath, buffer);
-    }
-
-    // 3. Create concat list
-    const listFile = path.join(tempDir, "list.txt");
-   const listContent = files
-  .map((_, i) => `file seg${i}.webm`)
-  .join("\n");
-
-    fs.writeFileSync(listFile, listContent);
-
-    const outputFile = path.join(tempDir, "output.webm");
-
-    // 4. Merge with FFmpeg
-    await new Promise((resolve, reject) => {
-  exec(
-    `cd ${tempDir} && ffmpeg -f concat -safe 0 -i list.txt -c copy output.webm`,
-    (err, stdout, stderr) => {
-      console.log("FFMPEG STDOUT:", stdout);
-      console.log("FFMPEG STDERR:", stderr);
-
-      if (err) reject(err);
-      else resolve();
-    }
-  );
+app.get("/merge", (req, res) => {
+  console.log("MERGE HIT");
+  res.send("MERGE WORKING");
 });
 
     // 5. Return merged video
