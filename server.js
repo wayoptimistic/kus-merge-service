@@ -11,6 +11,8 @@ app.get("/health", (req, res) => {
 
 // 🔥 MERGE ENDPOINT
 app.get("/merge", async (req, res) => {
+  console.log("MERGE ENDPOINT HIT");
+
   const sessionId = req.query.sessionId;
 
   if (!sessionId) {
