@@ -11,21 +11,58 @@ app.get("/health", (req, res) => {
 // test route
 const axios = require("axios");
 
+const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
 app.get("/merge", async (req, res) => {
-  console.log("MERGE AXIOS TEST");
+  console.log("MERGE DIRECT TEST");
+
+  const tempDir = `/tmp/test`;
+  fs.mkdirSync(tempDir, { recursive: true });
 
   try {
-    const response = await axios.get(
-      "https://kus-upload.jbehrens57.workers.dev/list",
-      { timeout: 5000 }
-    );
+    const files = [
+      "kus-1773770385596.webm",
+      "kus-1773770385615.webm"
+    ];
 
-    console.log("AXIOS STATUS:", response.status);
+    const base = "https://kus-upload.jbehrens57.workers.dev/video";
 
-    res.json(response.data);
+    for (let i = 0; i < files.length; i++) {
+      const url = `${base}/${files[i]}`;
+      const filePath = path.join(tempDir, `seg${i}.webm`);
+
+      const response = await fetch(url);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      fs.writeFileSync(filePath, buffer);
+    }
+
+    const listPath = path.join(tempDir, "list.txt");
+    const listContent = files
+      .map((_, i) => `file seg${i}.webm`)
+      .join("\n");
+
+    fs.writeFileSync(listPath, listContent);
+
+    await new Promise((resolve, reject) => {
+      exec(
+        `cd ${tempDir} && ffmpeg -f concat -safe 0 -i list.txt -c copy output.webm`,
+        (err, stdout, stderr) => {
+          console.log(stderr);
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+
+    const output = fs.readFileSync(path.join(tempDir, "output.webm"));
+
+    res.setHeader("Content-Type", "video/webm");
+    res.send(output);
 
   } catch (err) {
-    console.error("AXIOS ERROR:", err.message);
-    res.status(500).send("AXIOS FAILED");
+    console.error(err);
+    res.status(500).send("MERGE FAILED");
   }
 });
