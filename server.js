@@ -1,68 +1,67 @@
 const express = require("express");
+const fs = require("fs");
+const ffmpeg = require("fluent-ffmpeg");
+const cors = require("cors");
+const fetch = require("node-fetch");
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-// health check
-app.get("/health", (req, res) => {
-  console.log("HEALTH HIT");
-  res.send("OK");
+app.get("/", (req, res) => {
+  res.send("KUS Merge Server Running");
 });
 
-// test route
-const axios = require("axios");
-
-const { exec } = require("child_process");
-const fs = require("fs");
-const path = require("path");
-
-app.get("/merge", async (req, res) => {
-  console.log("MERGE DIRECT TEST");
-
-  const tempDir = `/tmp/test`;
-  fs.mkdirSync(tempDir, { recursive: true });
-
+app.post("/merge", async (req, res) => {
   try {
-    const files = [
-      "kus-1773770385596.webm",
-      "kus-1773770385615.webm"
-    ];
+    const { files } = req.body;
 
-    const base = "https://kus-upload.jbehrens57.workers.dev/video";
-
-    for (let i = 0; i < files.length; i++) {
-      const url = `${base}/${files[i]}`;
-      const filePath = path.join(tempDir, `seg${i}.webm`);
-
-      const response = await fetch(url);
-      const buffer = Buffer.from(await response.arrayBuffer());
-      fs.writeFileSync(filePath, buffer);
+    if (!files || files.length === 0) {
+      return res.status(400).send("No files provided");
     }
 
-    const listPath = path.join(tempDir, "list.txt");
-    const listContent = files
-      .map((_, i) => `file seg${i}.webm`)
-      .join("\n");
+    const localFiles = [];
 
-    fs.writeFileSync(listPath, listContent);
+    for (let i = 0; i < files.length; i++) {
+      const url = files[i];
+      const filename = `/tmp/segment-${i}.webm`;
 
-    await new Promise((resolve, reject) => {
-      exec(
-        `cd ${tempDir} && ffmpeg -f concat -safe 0 -i list.txt -c copy output.webm`,
-        (err, stdout, stderr) => {
-          console.log(stderr);
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
+      const response = await fetch(url);
+      const buffer = await response.buffer();
 
-    const output = fs.readFileSync(path.join(tempDir, "output.webm"));
+      fs.writeFileSync(filename, buffer);
+      localFiles.push(filename);
+    }
 
-    res.setHeader("Content-Type", "video/webm");
-    res.send(output);
+    const listFile = "/tmp/filelist.txt";
+    const content = localFiles.map(f => `file '${f}'`).join("\n");
+    fs.writeFileSync(listFile, content);
+
+    const output = `/tmp/merged-${Date.now()}.webm`;
+
+    ffmpeg()
+      .input(listFile)
+      .inputOptions(["-f concat", "-safe 0"])
+      .outputOptions(["-c copy"])
+      .output(output)
+      .on("end", () => {
+        res.download(output, () => {
+          fs.unlinkSync(output);
+          fs.unlinkSync(listFile);
+          localFiles.forEach(f => fs.unlinkSync(f));
+        });
+      })
+      .on("error", err => {
+        console.error(err);
+        res.status(500).send("Merge failed");
+      })
+      .run();
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("MERGE FAILED");
+    res.status(500).send("Server error");
   }
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Server running on " + PORT));
