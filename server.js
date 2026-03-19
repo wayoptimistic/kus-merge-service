@@ -5,6 +5,9 @@ const cors = require("cors");
 const fetch = require("node-fetch");
 
 const app = express();
+setInterval(() => {
+  console.log("alive");
+}, 10000);
 app.use(cors());
 app.use(express.json());
 
